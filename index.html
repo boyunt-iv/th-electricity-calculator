@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คำนวณค่าไฟ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sarabun:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --card: #161a22;
+    --border: #1e2430;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --green: #00e676;
+    --red: #ff1744;
+    --text: #e8eaf0;
+    --muted: #5c6680;
+    --tier1: #00e676;
+    --tier2: #69f0ae;
+    --tier3: #ffab40;
+    --tier4: #ff6b35;
+    --tier5: #ff1744;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(0,229,255,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,107,53,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    width: 100%;
+    max-width: 540px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .header .label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0.8;
+  }
+
+  .header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .header .sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Mode Toggle */
+  .mode-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+    gap: 4px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mode-btn.active {
+    background: var(--card);
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(0,229,255,0.1);
+  }
+
+  /* Rate selector */
+  .rate-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .rate-btn {
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .rate-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,0.05);
+  }
+
+  /* Input section */
+  .input-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .input-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .unit-display {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .unit-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 52px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(0,229,255,0.3);
+  }
+
+  .unit-label {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Slider */
+  .slider-wrap {
+    position: relative;
+    padding: 0 4px;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,229,255,0.5);
+    transition: box-shadow 0.2s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 18px rgba(0,229,255,0.7);
+  }
+
+  .slider-markers {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 0 2px;
+  }
+
+  .slider-markers span {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* Manual input */
+  .manual-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    align-items: center;
+  }
+
+  .manual-input-row label {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .manual-input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: center;
+  }
+
+  .manual-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(0,229,255,0.15);
+  }
+
+  /* Tier breakdown */
+  .breakdown-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .breakdown-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .tier-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    transition: opacity 0.3s;
+  }
+
+  .tier-row:last-child { border-bottom: none; }
+  .tier-row.inactive { opacity: 0.3; }
+
+  .tier-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .tier-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tier-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .tier-detail {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .tier-units {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    min-width: 60px;
+  }
+
+  .tier-cost {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: right;
+    min-width: 70px;
+  }
+
+  /* Bar visualization */
+  .tier-bar-wrap {
+    margin-bottom: 6px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .tier-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* Total */
+  .total-card {
+    background: var(--card);
+    border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 14px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    box-shadow: 0 0 24px rgba(0,229,255,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .total-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,229,255,0.4), transparent);
+  }
+
+  .total-label {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .total-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    opacity: 0.6;
+  }
+
+  .total-amount {
+    text-align: right;
+  }
+
+  .total-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(0,229,255,0.4);
+    transition: color 0.3s;
+  }
+
+  .total-value.high { color: var(--accent2); text-shadow: 0 0 20px rgba(255,107,53,0.4); }
+  .total-value.very-high { color: var(--red); text-shadow: 0 0 20px rgba(255,23,68,0.4); }
+
+  .total-unit {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 2px;
+  }
+
+  /* Avg rate */
+  .avg-rate {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .stat-chip {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-chip .val {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .stat-chip .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* Compare section */
+  .compare-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .compare-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* Compare header row */
+  .cmp-header {
+    display: grid;
+    grid-template-columns: 1fr 72px 72px 72px;
+    gap: 4px;
+    padding: 0 0 8px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .cmp-header span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  .cmp-header span:first-child { text-align: left; color: var(--muted); }
+  .cmp-header .h-old { color: #aaa; }
+  .cmp-header .h-new { color: var(--accent); }
+  .cmp-header .h-diff { color: var(--muted); }
+
+  /* Compare tier row */
+  .cmp-row {
+    display: grid;
+    grid-template-columns: 1fr 72px 72px 72px;
+    gap: 4px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: opacity 0.3s;
+  }
+
+  .cmp-row:last-child { border-bottom: none; }
+  .cmp-row.inactive { opacity: 0.28; }
+
+  .cmp-tier-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .cmp-tier-label .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cmp-tier-label .info {}
+  .cmp-tier-label .name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .cmp-tier-label .units {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .cmp-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    text-align: right;
+    color: var(--muted);
+  }
+
+  .cmp-val.new-val { color: var(--accent); }
+
+  .cmp-diff-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .cmp-diff-val.save { color: var(--green); }
+  .cmp-diff-val.extra { color: var(--red); }
+  .cmp-diff-val.same { color: var(--muted); }
+
+  /* Compare total row */
+  .cmp-total-row {
+    display: grid;
+    grid-template-columns: 1fr 72px 72px 72px;
+    gap: 4px;
+    align-items: center;
+    padding: 12px 0 0 0;
+    margin-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .cmp-total-row .lbl {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .cmp-total-row .old-total {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #aaa;
+    text-align: right;
+  }
+
+  .cmp-total-row .new-total {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: right;
+  }
+
+  .cmp-total-row .diff-total {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .cmp-total-row .diff-total.save { color: var(--green); }
+  .cmp-total-row .diff-total.extra { color: var(--red); }
+
+  /* Summary badge */
+  .cmp-summary {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .cmp-summary.save {
+    background: rgba(0,230,118,0.08);
+    border: 1px solid rgba(0,230,118,0.2);
+    color: var(--green);
+  }
+
+  .cmp-summary.extra {
+    background: rgba(255,23,68,0.08);
+    border: 1px solid rgba(255,23,68,0.2);
+    color: var(--red);
+  }
+
+  .compare-diff { display: none; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="label">⚡ กระทรวงพลังงาน</div>
+    <h1>คำนวณค่าไฟ</h1>
+    <div class="sub">อัตราค่าไฟขั้นบันได (ใหม่ vs เดิม)</div>
+  </div>
+
+  <!-- Rate Mode -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" onclick="setRate('new')">อัตราใหม่</button>
+    <button class="mode-btn" onclick="setRate('old')">อัตราเดิม</button>
+    <button class="mode-btn" onclick="setRate('compare')">เปรียบเทียบ</button>
+  </div>
+
+  <!-- Input -->
+  <div class="input-card">
+    <div class="input-label">การใช้ไฟฟ้า</div>
+    <div class="unit-display">
+      <div class="unit-value" id="unitDisplay">800</div>
+      <div class="unit-label">หน่วย / เดือน</div>
+    </div>
+    <div class="slider-wrap">
+      <input type="range" id="unitSlider" min="0" max="2000" step="10" value="800" oninput="updateCalc(this.value)">
+      <div class="slider-markers">
+        <span>0</span><span>500</span><span>1000</span><span>1500</span><span>2000</span>
+      </div>
+    </div>
+    <div class="manual-input-row">
+      <label>ใส่เองได้:</label>
+      <input type="number" class="manual-input" id="manualInput" value="800" min="0" max="9999" oninput="updateCalc(this.value)">
+      <label>หน่วย</label>
+    </div>
+  </div>
+
+  <!-- Total -->
+  <div class="total-card">
+    <div>
+      <div class="total-label" id="totalLabel">ค่าไฟรวม (อัตราใหม่)</div>
+      <div class="total-sub" id="totalSub">ยังไม่รวม VAT 7%</div>
+    </div>
+    <div class="total-amount">
+      <div class="total-value" id="totalValue">0</div>
+      <div class="total-unit">บาท</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="avg-rate">
+    <div class="stat-chip">
+      <div class="val" id="avgRate">0.00</div>
+      <div class="lbl">อัตราเฉลี่ย (บาท/หน่วย)</div>
+    </div>
+    <div class="stat-chip">
+      <div class="val" id="vatTotal">0</div>
+      <div class="lbl">รวม VAT 7% (บาท)</div>
+    </div>
+  </div>
+
+  <!-- Breakdown -->
+  <div class="breakdown-card">
+    <div class="breakdown-title">รายละเอียดขั้นบันได</div>
+    <div id="tierRows"></div>
+  </div>
+
+  <!-- Compare Section -->
+  <div class="compare-section" id="compareCard" style="display:none">
+    <div class="compare-section-title">เปรียบเทียบ เดิม vs ใหม่ ทีละขั้น</div>
+    <div class="cmp-header">
+      <span>ขั้น</span>
+      <span class="h-old">เดิม</span>
+      <span class="h-new">ใหม่</span>
+      <span class="h-diff">ต่าง</span>
+    </div>
+    <div id="cmpRows"></div>
+    <div class="cmp-total-row" id="cmpTotalRow"></div>
+    <div class="cmp-summary" id="cmpSummary"></div>
+  </div>
+</div>
+
+<script>
+const TIERS = [
+  { label: 'ขั้นที่ 1', range: '0–200 หน่วย', max: 200,  newRate: 3.00, oldRate: 3.65, color: '#00e676' },
+  { label: 'ขั้นที่ 2', range: '201–400 หน่วย', max: 400, newRate: 3.60, oldRate: 4.00, color: '#69f0ae' },
+  { label: 'ขั้นที่ 3', range: '401–500 หน่วย', max: 500, newRate: 4.00, oldRate: 4.10, color: '#ffab40' },
+  { label: 'ขั้นที่ 4', range: '501–750 หน่วย', max: 750, newRate: 4.50, oldRate: 4.20, color: '#ff6b35' },
+  { label: 'ขั้นที่ 5', range: '751+ หน่วย', max: Infinity, newRate: 5.15, oldRate: 4.35, color: '#ff1744' },
+];
+
+let currentRate = 'new';
+let currentUnits = 800;
+
+function setRate(mode) {
+  currentRate = mode;
+  document.querySelectorAll('.mode-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['new','old','compare'][i] === mode);
+  });
+  updateCalc(currentUnits);
+}
+
+function calcBill(units, rateKey) {
+  let remaining = units;
+  let total = 0;
+  let breakdown = [];
+  let prevMax = 0;
+
+  for (const tier of TIERS) {
+    const tierMax = tier.max === Infinity ? Infinity : tier.max - prevMax;
+    const used = Math.min(remaining, tierMax === Infinity ? remaining : tier.max - prevMax);
+    const rate = rateKey === 'new' ? tier.newRate : tier.oldRate;
+    const cost = used * rate;
+    breakdown.push({ ...tier, used, cost, rate });
+    total += cost;
+    remaining -= used;
+    prevMax = tier.max === Infinity ? prevMax : tier.max;
+    if (remaining <= 0) break;
+  }
+
+  // Fill zeros for inactive tiers
+  while (breakdown.length < TIERS.length) {
+    const tier = TIERS[breakdown.length];
+    const rate = rateKey === 'new' ? tier.newRate : tier.oldRate;
+    breakdown.push({ ...tier, used: 0, cost: 0, rate });
+  }
+
+  return { total, breakdown };
+}
+
+function updateCalc(val) {
+  const units = Math.max(0, Math.min(9999, parseInt(val) || 0));
+  currentUnits = units;
+  document.getElementById('unitDisplay').textContent = units.toLocaleString();
+  document.getElementById('unitSlider').value = Math.min(units, 2000);
+  document.getElementById('manualInput').value = units;
+
+  const rateKey = currentRate === 'compare' ? 'new' : currentRate;
+  const { total, breakdown } = calcBill(units, rateKey);
+
+  // Total display
+  const totalEl = document.getElementById('totalValue');
+  totalEl.textContent = total.toFixed(2);
+  totalEl.className = 'total-value' + (total > 3000 ? ' very-high' : total > 1500 ? ' high' : '');
+
+  const avgRate = units > 0 ? total / units : 0;
+  document.getElementById('avgRate').textContent = avgRate.toFixed(2);
+  document.getElementById('vatTotal').textContent = (total * 1.07).toFixed(2);
+
+  const label = currentRate === 'new' ? 'ค่าไฟรวม (อัตราใหม่)' :
+                currentRate === 'old' ? 'ค่าไฟรวม (อัตราเดิม)' : 'ค่าไฟรวม (อัตราใหม่)';
+  document.getElementById('totalLabel').textContent = label;
+
+  // Tier rows
+  const container = document.getElementById('tierRows');
+  container.innerHTML = '';
+
+  breakdown.forEach((tier, i) => {
+    const active = tier.used > 0;
+    const row = document.createElement('div');
+    row.className = 'tier-row' + (active ? '' : ' inactive');
+    
+    // Progress bar width relative to tier max
+    const tierSize = i === 4 ? Math.max(tier.used, 1) : (TIERS[i].max - (i > 0 ? TIERS[i-1].max : 0));
+    const barPct = active ? Math.min((tier.used / tierSize) * 100, 100) : 0;
+
+    row.innerHTML = `
+      <div class="tier-dot" style="background:${tier.color}"></div>
+      <div class="tier-info">
+        <div class="tier-name">${tier.label}</div>
+        <div class="tier-bar-wrap"><div class="tier-bar" style="width:${barPct}%;background:${tier.color}"></div></div>
+        <div class="tier-detail">${tier.range} · ฿${tier.rate}/หน่วย</div>
+      </div>
+      <div class="tier-units">${tier.used > 0 ? tier.used + ' หน่วย' : '—'}</div>
+      <div class="tier-cost" style="color:${active ? tier.color : 'var(--muted)'}">${active ? '฿' + tier.cost.toFixed(2) : '—'}</div>
+    `;
+    container.appendChild(row);
+  });
+
+  // Compare
+  const compareCard = document.getElementById('compareCard');
+  if (currentRate === 'compare') {
+    compareCard.style.display = 'block';
+    const { total: newTotal, breakdown: newBD } = calcBill(units, 'new');
+    const { total: oldTotal, breakdown: oldBD } = calcBill(units, 'old');
+
+    // Tier rows
+    const cmpRows = document.getElementById('cmpRows');
+    cmpRows.innerHTML = '';
+    for (let i = 0; i < TIERS.length; i++) {
+      const nb = newBD[i], ob = oldBD[i];
+      const active = nb.used > 0;
+      const tierDiff = nb.cost - ob.cost;
+      const diffClass = Math.abs(tierDiff) < 0.001 ? 'same' : tierDiff > 0 ? 'extra' : 'save';
+      const diffStr = Math.abs(tierDiff) < 0.001 ? '—' : (tierDiff > 0 ? '+' : '') + tierDiff.toFixed(2);
+
+      const row = document.createElement('div');
+      row.className = 'cmp-row' + (active ? '' : ' inactive');
+      row.innerHTML = `
+        <div class="cmp-tier-label">
+          <div class="dot" style="background:${nb.color}"></div>
+          <div class="info">
+            <div class="name">${nb.label}</div>
+            <div class="units">${active ? nb.used + ' หน่วย' : '—'}</div>
+          </div>
+        </div>
+        <div class="cmp-val">${active ? '฿' + ob.cost.toFixed(2) : '—'}</div>
+        <div class="cmp-val new-val">${active ? '฿' + nb.cost.toFixed(2) : '—'}</div>
+        <div class="cmp-diff-val ${diffClass}">${active ? diffStr : '—'}</div>
+      `;
+      cmpRows.appendChild(row);
+    }
+
+    // Total row
+    const totalDiff = newTotal - oldTotal;
+    const totalDiffClass = totalDiff > 0 ? 'extra' : 'save';
+    const totalDiffStr = (totalDiff > 0 ? '+' : '') + totalDiff.toFixed(2);
+    document.getElementById('cmpTotalRow').innerHTML = `
+      <div class="lbl">รวมทั้งหมด</div>
+      <div class="old-total">฿${oldTotal.toFixed(2)}</div>
+      <div class="new-total">฿${newTotal.toFixed(2)}</div>
+      <div class="diff-total ${totalDiffClass}">${totalDiffStr}</div>
+    `;
+
+    // Summary badge
+    const sumEl = document.getElementById('cmpSummary');
+    sumEl.className = 'cmp-summary ' + totalDiffClass;
+    sumEl.innerHTML = totalDiff > 0
+      ? `⚡ อัตราใหม่ <strong>แพงขึ้น ฿${Math.abs(totalDiff).toFixed(2)}</strong> ต่อเดือน`
+      : `✅ อัตราใหม่ <strong>ถูกลง ฿${Math.abs(totalDiff).toFixed(2)}</strong> ต่อเดือน`;
+  } else {
+    compareCard.style.display = 'none';
+  }
+}
+
+updateCalc(800);
+</script>
+</body>
+</html>
